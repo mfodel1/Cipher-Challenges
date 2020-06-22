@@ -6,7 +6,7 @@
 #include <stdlib.h>
 
 # define EntryLength 20 // bytes in entry
-# define BlockLength 6 // bytes in block
+# define BlockLength 10 // bytes in block
 # define maxBlocks 255
 # define maxEntries 127
 # define initialValueKDB 0x4F574154 // given intial value of LFSR for KDB files
@@ -15,8 +15,9 @@
 
 // path to KBD file provided the command line arguments
 int main(int argc, const char *argv[]){
-  char filename[nameLen], magic[6], data, fileData[maxEntries][maxBlocks + 1];
-  uint32_t entry_list, block_list, block_data, block_size;
+  char filename[nameLen], magic[6], *data, fileData[maxEntries][maxBlocks + 1], buffer[4]; // used for reading in the block_size and block_data
+  uint32_t entry_list, block_list, block_data, block_check;
+  uint16_t block_size;
   int entryNum = 0, blockNum = 0, totBlock = 0;
 
   FILE *fp = fopen("store.kdb", "r");
@@ -46,28 +47,28 @@ int main(int argc, const char *argv[]){
       return 1;
     }
 
-    fseek(fp, block_list, SEEK_SET); // moves fp to the start of block_list
-
     while(1){ // traverse the block list of this particular entry
-      fread(&block_size, sizeof(uint16_t), 1, fp); // THESE FREADS ARE NOT WORKING RIGHT.....
-      if (block_size == 0xffff) break;
+      fseek(fp, block_list, SEEK_SET);
+      fseek(fp, blockNum * BlockLength, SEEK_CUR); // sets fp to the next block
+
+      fread(&block_size, sizeof(uint16_t), 1, fp);
       fread(&block_data, sizeof(uint32_t), 1, fp);
       if (block_data == NULL){
         printf("Block reading error\n");
         return 1;
       }
+      fread(&block_check, sizeof(uint32_t), 1, fp);
 
       // read the block's data
       fseek(fp, block_data, SEEK_SET);
-      // allocate space to read in the variable length of data
-      data = (char) malloc(block_size);
-      fgets(data, block_size, fp);
+      // NEEDS TO BE FIXED......
+      // seg faults here
+      data = (char *) malloc(block_size + 1);
+      fgets(data, block_size + 1, fp);
       fileData[entryNum][blockNum + 1] = data; // save each block in a 2d array indexed by entry
       blockNum++;
       totBlock++;
-
-      fseek(fp, block_list, SEEK_SET);
-      fseek(fp, blockNum * BlockLength, SEEK_CUR); // sets fp to the next block
+      if (block_check == 0xffffffff) break;
     }
 
     entryNum++;
@@ -76,7 +77,6 @@ int main(int argc, const char *argv[]){
   }
 
   fclose(fp);
-  free(data);
   // for all the entries in the file, sent the data to LFSR and print the result + the filename
   int i, j;
   for (i = 0; i < entryNum; i++){
