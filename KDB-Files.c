@@ -5,21 +5,19 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-# define EntryLength 6 // bytes in entry
+# define EntryLength 20 // bytes in entry
 # define BlockLength 6 // bytes in block
 # define maxBlocks 255
 # define maxEntries 127
 # define initialValueKDB 0x4F574154 // given intial value of LFSR for KDB files
-# define magicBits 7 // starting magic bits + 1 for null character
-# define nameLen 16 // file name len
+# define magicBytes 7 // starting magic bits + 1 for null character
+# define nameLen 17 // file name len
 
 // path to KBD file provided the command line arguments
 int main(int argc, const char *argv[]){
   char filename[nameLen], magic[6], data, fileData[maxEntries][maxBlocks + 1];
-  uint32_t entry_list, block_list, block_data;
+  uint32_t entry_list, block_list, block_data, block_size;
   int entryNum = 0, blockNum = 0, totBlock = 0;
-  uint32_t blockCheck, entryCheck;
-  uint16_t block_size;
 
   FILE *fp = fopen("store.kdb", "r");
   if (fp == NULL){
@@ -27,7 +25,7 @@ int main(int argc, const char *argv[]){
     return 1;
   }
 
-  fgets(magic, magicBits, fp);
+  fgets(magic, magicBytes, fp);
 
   fread(&entry_list, sizeof(uint32_t), 1, fp); // reads the pointer to the entry list
   if (entry_list == NULL) {
@@ -39,7 +37,7 @@ int main(int argc, const char *argv[]){
 
   while(1){ // reads at most 127 entries
     fgets(filename, nameLen, fp);
-    if (filename == 0xFF) break;
+    if (filename == 0xffff) break;
     fileData[entryNum][0] = filename;
 
     fread(&block_list, sizeof(uint32_t), 1, fp);
@@ -51,8 +49,8 @@ int main(int argc, const char *argv[]){
     fseek(fp, block_list, SEEK_SET); // moves fp to the start of block_list
 
     while(1){ // traverse the block list of this particular entry
-      fread(&block_size, sizeof(uint16_t), 1, fp);
-      if (block_size == 0xFF) break;
+      fread(&block_size, sizeof(uint16_t), 1, fp); // THESE FREADS ARE NOT WORKING RIGHT.....
+      if (block_size == 0xffff) break;
       fread(&block_data, sizeof(uint32_t), 1, fp);
       if (block_data == NULL){
         printf("Block reading error\n");
