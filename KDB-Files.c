@@ -1,4 +1,4 @@
-// challenge
+// challenge 2
 #include <stdio.h>
 #include <string.h>
 #include "LFSR.c"
@@ -11,19 +11,15 @@
 # define maxEntries 127
 # define initialValueKDB 0x4F574154 // given intial value of LFSR for KDB files
 # define magicBits 7 // starting magic bits + 1 for null character
-# define nameLen 16 // file names are stored as null terminated strings
+# define nameLen 16 // file name len
 
 // path to KBD file provided the command line arguments
 int main(int argc, const char *argv[]){
-  char filename[nameLen];
-  char *magic;
-  char data;
+  char filename[nameLen], magic[6], data, fileData[maxEntries][maxBlocks + 1];
   uint32_t entry_list, block_list, block_data;
-  int entryNum = 0, blockNum = 0;
+  int entryNum = 0, blockNum = 0, totBlock = 0;
   uint32_t blockCheck, entryCheck;
   uint16_t block_size;
-  char fileData[maxEntries][maxBlocks];
-  char fileNameList[maxEntries];
 
   FILE *fp = fopen("store.kdb", "r");
   if (fp == NULL){
@@ -33,7 +29,7 @@ int main(int argc, const char *argv[]){
 
   fgets(magic, magicBits, fp);
 
-  fread(entry_list, sizeof(uint32_t), 1, fp); // reads the pointer to the entry list
+  fread(&entry_list, sizeof(uint32_t), 1, fp); // reads the pointer to the entry list
   if (entry_list == NULL) {
     printf("No Entries in the entry list");
     return 1;
@@ -43,20 +39,20 @@ int main(int argc, const char *argv[]){
 
   while(1){ // reads at most 127 entries
     fgets(filename, nameLen, fp);
-    fileNameList[entryNum] = filename;
+    if (filename == 0xFF) break;
+    fileData[entryNum][0] = filename;
 
-    fread(block_list, sizeof(uint32_t), 1, fp);
+    fread(&block_list, sizeof(uint32_t), 1, fp);
     if (block_list == NULL){
       printf("Error reading block list\n");
       return 1;
     }
 
     fseek(fp, block_list, SEEK_SET); // moves fp to the start of block_list
-    blockNum = 0;
 
     while(1){ // traverse the block list of this particular entry
       fread(&block_size, sizeof(uint16_t), 1, fp);
-      fseek(fp, sizeof(uint16_t), SEEK_CUR);
+      if (block_size == 0xFF) break;
       fread(&block_data, sizeof(uint32_t), 1, fp);
       if (block_data == NULL){
         printf("Block reading error\n");
@@ -68,29 +64,27 @@ int main(int argc, const char *argv[]){
       // allocate space to read in the variable length of data
       data = (char) malloc(block_size);
       fgets(data, block_size, fp);
-      fileData[entryNum][blockNum] = data; // save each block in a 2d array indexed by entry
-
+      fileData[entryNum][blockNum + 1] = data; // save each block in a 2d array indexed by entry
       blockNum++;
-      fseek(fp, block_list, SEEK_SET); // moves fp to the start of entries of block_list
-      fseek(fp, blockNum * BlockLength, SEEK_CUR); // move fp to the next block in block_list
-      fread(&blockCheck, sizeof(uint32_t), 1, fp); // used to check if the block list is done
-      if (blockCheck == 0xFFFFFFFF) {
-        break;
-      }
+      totBlock++;
+
+      fseek(fp, block_list, SEEK_SET);
+      fseek(fp, blockNum * BlockLength, SEEK_CUR); // sets fp to the next block
     }
 
     entryNum++;
     fseek(fp, entry_list, SEEK_SET);
     fseek(fp, entryNum * EntryLength, SEEK_CUR); // sets fp to the next entry in the entry_list
-    fread(&entryCheck, sizeof(uint32_t), 1, fp); // used to check if the entry list is done
-    if (entryCheck == 0xFFFFFFFF) {
-      break;
-    }
-
   }
 
   fclose(fp);
   free(data);
   // for all the entries in the file, sent the data to LFSR and print the result + the filename
+  int i, j;
+  for (i = 0; i < entryNum; i++){
+    for (j = 0; j < totBlock; j++){
+      printf("%s\n", fileData[i][j]);
+    }
+  }
   return 0;
 }
