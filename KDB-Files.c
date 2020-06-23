@@ -12,13 +12,16 @@
 # define initialValueKDB 0x4F574154 // given intial value of LFSR for KDB files
 # define magicBytes 7 // starting magic bits + 1 for null character
 # define nameLen 17 // file name len
+# define maxBlockSize 65536 // largest possible block size
 
 // path to KBD file provided the command line arguments
 int main(int argc, const char *argv[]){
-  char filename[nameLen], magic[6], *data, fileData[maxEntries][maxBlocks + 1], buffer[4]; // used for reading in the block_size and block_data
-  uint32_t entry_list, block_list, block_data, block_check, entryCheck;
+  char filename[nameLen], magic[6];
+  unsigned char *blockData;
+  unsigned char *data[maxBlockSize];
+  uint32_t entry_list, block_list, block_data, block_check;
   uint16_t block_size;
-  int entryNum = 0, blockNum = 0, totBlock = 0;
+  int entryNum = 0;
 
   FILE *fp = fopen("store.kdb", "r");
   if (fp == NULL){
@@ -42,7 +45,8 @@ int main(int argc, const char *argv[]){
     fgets(filename, nameLen, fp);
     if (filename[0] == 0xffffffff) break;
 
-    fileData[entryNum][0] = filename;
+    printf("%s : ", filename);
+
     fread(&block_list, sizeof(uint32_t), 1, fp);
     if (block_list == NULL){
       printf("Error reading block list\n");
@@ -68,21 +72,17 @@ int main(int argc, const char *argv[]){
 
       // read the block's data
       fseek(fp, block_data, SEEK_SET);
-      data = (char *) malloc(block_size + 1);
-      fgets(data, block_size + 1, fp);
-      fileData[entryNum][blockNum + 1] = data; // save each block in a 2d array indexed by entry
-      blockNum++;
-      totBlock++;
+      fread(&data, block_size, 1, fp);
+
+      unsigned char *result = Crypt(data, block_size, initialValueKDB);
+      printf("%s ", result);
+      
       if (block_check == 0xffffffff) break;
     }
 
+    printf(": End of File...\n");
     entryNum++;
-    fread(&entryCheck, sizeof(uint32_t), 1, fp);
-    if (entryCheck == 0xffffffff) break;
   }
-
   fclose(fp);
-  free(data);
-  // for all the entries in the file, sent the data to LFSR and print the result + the filename
   return 0;
 }
