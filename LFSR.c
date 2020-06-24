@@ -18,7 +18,7 @@ unsigned char *Crypt(unsigned char *data, int dataLength, unsigned int initialVa
     return data;
 }
 
-
+// used for testing challenge #1 
 /* int main(void) {
     int i, n;
     message and intial value passed corresponde with provided example tests.

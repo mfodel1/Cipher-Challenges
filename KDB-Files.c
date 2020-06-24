@@ -10,24 +10,24 @@
 # define maxBlocks 255
 # define maxEntries 127
 # define initialValueKDB 0x4F574154 // given intial value of LFSR for KDB files
-# define magicBytes 7 // starting magic bits + 1 for null character
+# define magicBytes 7 // starting magic bits + 1 for null character with using fgets
 # define nameLen 17 // file name len
 # define maxBlockSize 65536 // largest possible block size
 
 // path to KBD file provided the command line arguments
-int main(int argc, const char *argv[]){
+unsigned char *readKDB(const char *file){
   char filename[nameLen], magic[6];
-  unsigned char *blockData;
   unsigned char *data[maxBlockSize];
   uint32_t entry_list, block_list, block_data, block_check;
   uint16_t block_size;
   int entryNum = 0;
 
-  FILE *fp = fopen("store.kdb", "rb"); // open as a binary file
+  FILE *fp = fopen(file, "rb"); // open as a binary file
   if (fp == NULL){
     printf("Error in opening file.");
     return 1;
   }
+
 
   fgets(magic, magicBytes, fp);
   fread(&entry_list, sizeof(uint32_t), 1, fp); // reads the pointer to the entry list
@@ -80,9 +80,15 @@ int main(int argc, const char *argv[]){
       if (block_check == 0xffffffff) break;
     }
 
-    printf(": End of File...\n");
+    printf(": End of Entry...\n");
     entryNum++;
   }
   fclose(fp);
-  return 0;
+  return data;
 }
+
+// used for testing challenge 2 with store.kdb as input
+/* int main(int argc, const char* argv[]){
+  readKDB(argv[1]);
+  return 0;
+} */
