@@ -23,7 +23,7 @@ int main(int argc, const char *argv[]){
   uint16_t block_size;
   int entryNum = 0;
 
-  FILE *fp = fopen("store.kdb", "r");
+  FILE *fp = fopen("store.kdb", "rb"); // open as a binary file
   if (fp == NULL){
     printf("Error in opening file.");
     return 1;
@@ -73,10 +73,10 @@ int main(int argc, const char *argv[]){
       // read the block's data
       fseek(fp, block_data, SEEK_SET);
       fread(&data, block_size, 1, fp);
-
       unsigned char *result = Crypt(data, block_size, initialValueKDB);
       printf("%s ", result);
-      
+
+      memset(data, 0, sizeof(data));
       if (block_check == 0xffffffff) break;
     }
 
