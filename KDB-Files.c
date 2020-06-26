@@ -15,7 +15,8 @@
 # define maxBlockSize 65536 // largest possible block size
 
 // path to KBD file provided the command line arguments
-unsigned char *readKDB(const char *file){
+// second arg is a check for challenge 3
+unsigned char *readKDB(const char *file, int c3check){
   char filename[nameLen], magic[6];
   unsigned char *data[maxBlockSize];
   uint32_t entry_list, block_list, block_data, block_check;
@@ -75,6 +76,7 @@ unsigned char *readKDB(const char *file){
       fread(&data, block_size, 1, fp);
       unsigned char *result = Crypt(data, block_size, initialValueKDB);
       printf("%s ", result);
+      if (c3check == 1) return result;
 
       memset(data, 0, sizeof(data));
       if (block_check == 0xffffffff) break;
@@ -84,11 +86,11 @@ unsigned char *readKDB(const char *file){
     entryNum++;
   }
   fclose(fp);
-  return data;
+  return 0;
 }
 
 // used for testing challenge 2 with store.kdb as input
-/* int main(int argc, const char* argv[]){
-  readKDB(argv[1]);
+ /* int main(int argc, const char* argv[]){
+  readKDB(argv[1], 0);
   return 0;
 } */
