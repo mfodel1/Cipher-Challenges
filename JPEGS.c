@@ -13,21 +13,22 @@ int main(int argc, const char *argv[]){
     unsigned char jpegEnd[2] = {0xFF, 0xD9};
     long offset;
     int fileSize;
+
     // call readKdb to get magic bytes from given file.
     unsigned char *readResult = readKDB(argv[1], 1);
+    FILE *fp = fopen(argv[2], "r");
 
     char *dirName = strcat(argv[2], "_Repaired");
     mkdir(dirName);
     strcat(dirName, "/");
 
-    FILE *fp = fopen(argv[2], "rb+");
-    while(){ // figure out the loop condition
-      fgets(jpgBuf, 4, fp);
-      if (jpgBuf == readResult){
+    while(fread(&jpgBuf, 1, sizeof(jpgBuf), fp) == sizeof(jpgBuf)){
+      if (strcmp(jpgBuf, (char*)readResult) == 0){
         // save the offset where the byte pattern was found
         offset = ftell(fp);
         offset -= 3;
-        char *fileName = strcat((char)offset, ".jpeg");
+        char *fileName;
+        sprintf(fileName, "%x.jpeg", offset);
         char *filePath = strcat(dirName, fileName);
         FILE *fp1 = fopen(filePath, "w");
         fileSize += fwrite(standard, 1, sizeof(standard), fp1);
@@ -38,8 +39,9 @@ int main(int argc, const char *argv[]){
           }
         fileSize += fwrite(endCheck, 1, 2, fp1);
         printf("File finished writing\n");
-        // printf the file offset, fileSize, and the file's MD5 hash, and the filePath.
+        // printf the file offset, fileSize, and the file's MD5 hash, and the filePath
         fclose(fp1);
+        // MD5 hash.
         }
       }
     fclose(fp);
