@@ -9,6 +9,7 @@
 
 int main(int argc, const char *argv[]){
     unsigned char jpgBuf[3], endCheck[2];
+    unsigned char magicStart[3];
     unsigned char standard[3] = {0xFF, 0xD8, 0xFF};
     unsigned char jpegEnd[2] = {0xFF, 0xD9};
     long offset;
@@ -16,14 +17,20 @@ int main(int argc, const char *argv[]){
 
     // call readKdb to get magic bytes from given file.
     unsigned char *readResult = readKDB(argv[1], 1);
+    int i;
+    for (i = 0; i < 3; i++) {
+      magicStart[i] = *(readResult + i);
+    }
     FILE *fp = fopen(argv[2], "r");
 
     char *dirName = strcat(argv[2], "_Repaired");
     mkdir(dirName);
     strcat(dirName, "/");
 
-    while(fread(&jpgBuf, 1, sizeof(jpgBuf), fp) == sizeof(jpgBuf)){
-      if (strcmp(jpgBuf, (char*)readResult) == 0){
+    int num = fread(&jpgBuf, 1, sizeof(jpgBuf), fp);
+    while(num == sizeof(jpgBuf)){
+      int ret = memcmp(magicStart, jpgBuf, 3);
+      if (ret == 0){
         // save the offset where the byte pattern was found
         offset = ftell(fp);
         offset -= 3;
@@ -43,6 +50,7 @@ int main(int argc, const char *argv[]){
         fclose(fp1);
         // MD5 hash.
         }
+      num = fread(&jpgBuf, 1, sizeof(jpgBuf), fp);
       }
     fclose(fp);
     return 0;
