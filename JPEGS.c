@@ -8,8 +8,8 @@
 #include <sys/types.h>
 
 int main(int argc, const char *argv[]){
-    unsigned char jpgBuf[3], endCheck[2];
-    unsigned char magicStart[3];
+    unsigned char jpgBuf[4], endCheck[2];
+    unsigned char magicStart[4];
     unsigned char standard[3] = {0xFF, 0xD8, 0xFF};
     unsigned char jpegEnd[2] = {0xFF, 0xD9};
     long offset;
@@ -21,26 +21,32 @@ int main(int argc, const char *argv[]){
     for (i = 0; i < 3; i++) {
       magicStart[i] = *(readResult + i);
     }
-    FILE *fp = fopen(argv[2], "r");
+    magicStart[3] = 0xe0; // standard jpeg start
+    FILE *fp = fopen(argv[2], "rb");
 
     char *dirName = strcat(argv[2], "_Repaired");
     mkdir(dirName);
     strcat(dirName, "/");
 
-    int num = fread(&jpgBuf, 1, sizeof(jpgBuf), fp);
+
+    int num = fread(&jpgBuf, 1, sizeof(jpgBuf), fp); // problem with read?
     while(num == sizeof(jpgBuf)){
-      int ret = memcmp(magicStart, jpgBuf, 3);
+      int ret = memcmp(magicStart, jpgBuf, 4);
       if (ret == 0){
         // save the offset where the byte pattern was found
         offset = ftell(fp);
-        offset -= 3;
+        offset -= 4;
         char *fileName;
         sprintf(fileName, "%x.jpeg", offset);
-        char *filePath = strcat(dirName, fileName);
+
+        char *filePath;
+        strcpy(filePath, dirName);
+        filePath = strcat(filePath, fileName); // error making filePath??
+
         FILE *fp1 = fopen(filePath, "w");
         fileSize += fwrite(standard, 1, sizeof(standard), fp1);
         fread(&endCheck, 2, 1, fp);
-        while (endCheck != jpegEnd) {
+        while (endCheck != jpegEnd){
             fileSize += fwrite(endCheck, 1, 2, fp1);
             fread(&endCheck, 2, 1, fp);
           }
