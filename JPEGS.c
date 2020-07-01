@@ -1,19 +1,21 @@
 // challenge 3
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 #include "KDB-Files.c"
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
+
 int main(int argc, const char *argv[]){
     unsigned char jpgBuf[4], endCheck[2];
     unsigned char magicStart[4];
-    unsigned char standard[3] = {0xFF, 0xD8, 0xFF};
+    unsigned char standard[4] = {0xFF, 0xD8, 0xFF, 0xe0};
     unsigned char jpegEnd[2] = {0xFF, 0xD9};
     long offset;
-    int fileSize;
+    int fileSize = 0;
 
     // call readKdb to get magic bytes from given file.
     unsigned char *readResult = readKDB(argv[1], 1);
@@ -26,10 +28,9 @@ int main(int argc, const char *argv[]){
 
     char *dirName = strcat(argv[2], "_Repaired");
     mkdir(dirName);
-    strcat(dirName, "/");
+    chdir(dirName);
 
-
-    int num = fread(&jpgBuf, 1, sizeof(jpgBuf), fp); // problem with read?
+    int num = fread(&jpgBuf, 1, sizeof(jpgBuf), fp);
     while(num == sizeof(jpgBuf)){
       int ret = memcmp(magicStart, jpgBuf, 4);
       if (ret == 0){
@@ -38,14 +39,9 @@ int main(int argc, const char *argv[]){
         offset -= 4;
         char *fileName;
         sprintf(fileName, "%x.jpeg", offset);
-
-        char *filePath;
-        strcpy(filePath, dirName);
-        filePath = strcat(filePath, fileName); // error making filePath??
-
-        FILE *fp1 = fopen(filePath, "w");
+        FILE *fp1 = fopen(fileName, "w");
         fileSize += fwrite(standard, 1, sizeof(standard), fp1);
-        fread(&endCheck, 2, 1, fp);
+        fread(&endCheck, 1, sizeof(endCheck), fp);
         while (endCheck != jpegEnd){
             fileSize += fwrite(endCheck, 1, 2, fp1);
             fread(&endCheck, 2, 1, fp);
