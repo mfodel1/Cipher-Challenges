@@ -1,21 +1,17 @@
 // challenge 3
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
 #include "KDB-Files.c"
-#include <stdint.h>
-#include <stdlib.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-
+#include <openssl/md5.h>
 
 int main(int argc, const char *argv[]){
-    unsigned char jpgBuf[4], endCheck[2];
+    unsigned char jpgBuf[4], temp[2];
     unsigned char magicStart[4];
     unsigned char standard[4] = {0xFF, 0xD8, 0xFF, 0xe0};
     unsigned char jpegEnd[2] = {0xFF, 0xD9};
-    long offset;
-    int fileSize = 4;
+    long offset, inputSize, check1;
+    int fileSize = 0;
+    int endCheck = 0;
 
     // call readKdb to get magic bytes from given file.
     unsigned char *readResult = readKDB(argv[1], 1);
@@ -30,38 +26,63 @@ int main(int argc, const char *argv[]){
     mkdir(dirName);
     chdir(dirName);
 
-    int num = fread(&jpgBuf, 1, sizeof(jpgBuf), fp);
-    while(num == sizeof(jpgBuf)){
+    fseek(fp, 0, SEEK_END);
+    inputSize = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+
+    while(ftell(fp) < inputSize){
+      fread(&jpgBuf, 1, sizeof(jpgBuf), fp);
       if (memcmp(magicStart, jpgBuf, 4) == 0){
         // save the offset where the byte pattern was found
         offset = ftell(fp);
         offset -= 4;
 
-        int num1 = fread(&endCheck, 1, sizeof(endCheck), fp);
-        while (memcmp(endCheck, jpegEnd, 2) != 0 || num1 != sizeof(endCheck)){ // find the jpeg's size
-            fileSize += 2; // 2 bytes read at a time.
-            num1 = fread(&endCheck, 1, sizeof(endCheck), fp);
-        }
-
-        fseek(fp, offset, SEEK_SET); // sets fp to the start of the file
-        unsigned char temp[fileSize]; /// problem making the array
-        int num2 = fread(&temp, 1, fileSize, fp); // reads the file in its entirety from input file
-        int i;
-        for (i = 0; i < 3; i++){ // custom magic bytes are replaced
-          temp[i] = standard[i];
-        }
-
         char fileName[20];
         sprintf(fileName, "%x.jpeg", offset);
-        FILE *fp1 = fopen(fileName, "w");
-        fwrite(temp, sizeof(temp), 1, fp1);
-        //memset(inputFile, 0, sizeof(inputFile));
-        printf("File finished writing\n");
-        fclose(fp1);
-        // printf the file offset, fileSize, and the file's MD5 hash, and the filePath
-        // MD5 hash.
+        FILE *fp1 = fopen(fileName, "wb");
+        fwrite(standard, 1, sizeof(standard), fp1);
+
+        fread(&temp, 1, sizeof(temp), fp);
+        while (endCheck != 1){
+          if (memcmp(temp, jpegEnd, 2) == 0){
+            fwrite(temp, 1, 2, fp1);
+            endCheck = 1;
+          }
+          else{
+            fwrite(temp, 1, 2, fp1);
+            fread(&temp, 1, sizeof(temp), fp);
+          }
         }
-      num = fread(&jpgBuf, 1, sizeof(jpgBuf), fp);
+
+        fileSize = ftell(fp) - offset;
+        fclose(fp1);
+
+        unsigned char data[fileSize - 1];
+        fp1 = fopen(fileName, "rb");
+        int num = fread(&data, 1, fileSize - 1, fp1);
+        fclose(fp1);
+
+        unsigned char hash[MD5_DIGEST_LENGTH];
+        MD5(data, num, hash);
+
+        int reset = ftell(fp) % 16;
+        fseek(fp, fileSize + offset - reset, SEEK_SET);
+
+        endCheck = 0;
+
+        printf("File: %s\n", fileName);
+        printf("Offset found: %x\n", offset);
+        printf("File Size: %d\n", fileSize);
+        printf("File Path : %s/%s\n", dirName, fileName);
+        printf("MD5 Hash: ")
+        int i;
+        for(i = 0; i < MD5_DIGEST_LENGTH; i++){
+          printf("%02x", hash[i]);
+        }
+        printf("\n");
+        printf("End of File Data\n");
+        printf("\n\n");
+        }
       }
     fclose(fp);
     return 0;

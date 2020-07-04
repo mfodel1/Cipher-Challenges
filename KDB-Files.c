@@ -75,8 +75,11 @@ unsigned char *readKDB(const char *file, int c3check){
       fseek(fp, block_data, SEEK_SET);
       fread(&data, block_size, 1, fp);
       unsigned char *result = Crypt(data, block_size, initialValueKDB);
-      printf("%s ", result);
-      if (c3check == 1) return result;
+      printf("%s", result);
+      if (c3check == 1) {
+        printf("\n");
+        return result;
+      }
 
       memset(data, 0, sizeof(data));
       if (block_check == 0xffffffff) break;
