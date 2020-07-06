@@ -1,17 +1,13 @@
 // challenge 3
-#include <stdio.h>
-#include <string.h>
 #include "KDB-Files.c"
 #include "md5.c"
 
 int main(int argc, const char *argv[]){
-    unsigned char jpgBuf[4], temp[2];
-    unsigned char magicStart[4];
+    unsigned char jpgBuf[4], temp[2], magicStart[4];
     unsigned char standard[4] = {0xFF, 0xD8, 0xFF, 0xe0};
     unsigned char jpegEnd[2] = {0xFF, 0xD9};
-    long offset, inputSize, check1;
-    int fileSize = 0;
-    int endCheck = 0;
+    long offset, inputSize;
+    int fileSize = 0, endCheck = 0;
 
     // call readKdb to get magic bytes from given file.
     unsigned char *readResult = readKDB(argv[1], 1);
@@ -58,7 +54,7 @@ int main(int argc, const char *argv[]){
         fclose(fp1);
 
         unsigned char data[fileSize - 1];
-        fp1 = fopen(fileName, "rb");
+        fp1 = fopen(fileName, "rb"); // read for to string for hash
         int num = fread(&data, 1, fileSize - 1, fp1);
         fclose(fp1);
 
@@ -72,8 +68,8 @@ int main(int argc, const char *argv[]){
 
         printf("File: %s\n", fileName);
         printf("Offset found: %x\n", offset);
-        printf("File Size: %d\n", fileSize);
-        printf("File Path : %s/%s\n", dirName, fileName);
+        printf("File Size: %d Bytes\n", fileSize);
+        printf("File Path from current directory : %s/%s\n", dirName, fileName);
         printf("MD5 Hash: ");
         int i,j;
         printf("= 0x");

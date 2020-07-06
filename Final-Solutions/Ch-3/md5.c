@@ -1,4 +1,4 @@
-// taken from https://rosettacode.org/wiki/MD5#C
+// MD5 hash implementation taken from https://rosettacode.org/wiki/MD5#C
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -123,4 +123,4 @@ unsigned *md5( const char *msg, int mlen)
         free( msg2 );
 
     return h;
-}  
+}

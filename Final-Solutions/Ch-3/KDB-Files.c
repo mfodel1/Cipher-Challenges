@@ -1,21 +1,15 @@
 // challenge 2 includes Challenge 1
-#include <stdio.h>
-#include <string.h>
 #include "LFSR.c"
 #include <stdint.h>
-#include <stdlib.h>
 
 # define EntryLength 20 // bytes in entry
-# define BlockLength 10 // bytes in block
-# define maxBlocks 255
-# define maxEntries 127
 # define initialValueKDB 0x4F574154 // given intial value of LFSR for KDB files
 # define magicBytes 7 // starting magic bits + 1 for null character with using fgets
 # define nameLen 17 // file name len
 # define maxBlockSize 65536 // largest possible block size
 
 // path to KBD file provided the command line arguments
-// second arg is a check for challenge 3
+// second arg is a check for challenge 3 to see if just the first entry's data is needed.
 unsigned char *readKDB(const char *file, int c3check){
   char filename[nameLen], magic[6];
   unsigned char *data[maxBlockSize];
@@ -28,7 +22,6 @@ unsigned char *readKDB(const char *file, int c3check){
     printf("Error in opening file.");
     return 1;
   }
-
 
   fgets(magic, magicBytes, fp);
   fread(&entry_list, sizeof(uint32_t), 1, fp); // reads the pointer to the entry list
@@ -45,7 +38,6 @@ unsigned char *readKDB(const char *file, int c3check){
 
     fgets(filename, nameLen, fp);
     if (filename[0] == 0xffffffff) break;
-
     printf("%s : ", filename);
 
     fread(&block_list, sizeof(uint32_t), 1, fp);

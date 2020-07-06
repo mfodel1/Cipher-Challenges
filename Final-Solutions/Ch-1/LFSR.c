@@ -13,7 +13,7 @@ unsigned char *Crypt(unsigned char *data, int dataLength, unsigned int initialVa
             initialValue >>= 1;
             if (lsb) initialValue ^= FEEDBACK;
         }
-    data[i] ^= initialValue & 0x00ff; // apply the key, XOR the first byte of the key with the first byte of the input.
+    data[i] ^= initialValue & 0x00ff; // apply the key, XOR the first byte of the key with the first byte of the input, and so on.
     }
     return data;
 }
